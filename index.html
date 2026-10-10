@@ -724,14 +724,14 @@
           <div class="card-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
           </div>
-          <h3>Sunny and warm</h3>
+          <h3 id="wx-title">Sunny and warm</h3>
           <p>Plan for heat and direct sun during prelims, then a cooler finish after sunset.</p>
           <div class="metric">
-            <div><strong>87°</strong><span>day high</span></div>
-            <div><strong>10%</strong><span>rain chance</span></div>
-            <div><strong>66°</strong><span>night low</span></div>
+            <div><strong id="wx-high">87°</strong><span>day high</span></div>
+            <div><strong id="wx-rain">10%</strong><span>rain chance</span></div>
+            <div><strong id="wx-low">66°</strong><span>night low</span></div>
           </div>
-          <p class="fine-print">Forecast checked October 9: south wind around 14 mph, UV index 7. Weather changes are communicated through the event BAND app.</p>
+          <p class="fine-print" id="wx-note">Loading the live Midland forecast…</p>
         </article>
 
         <article class="guide-card">
@@ -830,7 +830,7 @@
         <a class="btn btn-ghost" href="https://box5tv.com/box5_events/" target="_blank" rel="noopener">BOX5 stream</a>
         <a class="btn btn-ghost" href="https://weather.com/us/tx/city/midland/tenday" target="_blank" rel="noopener">Forecast</a>
       </div>
-      <p class="as-of">Guide checked October 9, 2026 at 2:53 PM CDT. Schedule sources updated October 5–8. Forecast and ticket prices are a dated snapshot and may change.</p>
+      <p class="as-of">Guide checked October 10, 2026. Schedule sources updated October 5–8. The forecast card updates live; ticket prices are a dated snapshot and may change.</p>
     </section>
   </main>
 
@@ -893,14 +893,63 @@
           '',
           'Digital/cashless tickets: Prelims $30 + fees, Finals $30 + fees, Day Pass $50 + fees.',
           'No outside food/drink. Still photos from seats only; no video, audio, or tripods. Use a clear bag or bag no larger than 6×9×5 in.',
-          'Forecast checked Oct. 9: sunny, high 87°F; mostly clear, low 66°F.',
+          'Forecast checked Oct. 10: sunny, high 87°F; mostly clear, low 66°F.',
           '',
           'Official event page: https://marching.musicforall.org/west-texas-regional/',
           'Tickets: https://aftontickets.com/BOAMIDLAND26'
         ].join('\n');
         copyText(summary, 'Parent summary copied');
       });
+
+      /* Live Midland forecast (Open-Meteo, no key needed). Falls back to the
+         printed snapshot if the request fails. */
+      (function () {
+        var titleEl = document.getElementById('wx-title');
+        var highEl = document.getElementById('wx-high');
+        var rainEl = document.getElementById('wx-rain');
+        var lowEl = document.getElementById('wx-low');
+        var noteEl = document.getElementById('wx-note');
+        if (!titleEl || !highEl || !rainEl || !lowEl || !noteEl) return;
+
+        var DESC = {
+          0: 'clear sky', 1: 'mostly clear', 2: 'partly cloudy', 3: 'overcast',
+          45: 'fog', 48: 'icy fog',
+          51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle',
+          56: 'freezing drizzle', 57: 'freezing drizzle',
+          61: 'light rain', 63: 'rain', 65: 'heavy rain',
+          66: 'freezing rain', 67: 'freezing rain',
+          71: 'light snow', 73: 'snow', 75: 'heavy snow', 77: 'snow grains',
+          80: 'light showers', 81: 'showers', 82: 'heavy showers',
+          85: 'snow showers', 86: 'snow showers',
+          95: 'thunderstorms', 96: 'storms with hail', 99: 'storms with hail'
+        };
+
+        var url = 'https://api.open-meteo.com/v1/forecast?latitude=31.9973&longitude=-102.0779'
+          + '&current=temperature_2m,weather_code'
+          + '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,uv_index_max'
+          + '&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FChicago&forecast_days=1';
+
+        fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+          if (!d || !d.current || !d.daily) return;
+          var now = Math.round(d.current.temperature_2m);
+          var desc = DESC[d.current.weather_code] || 'fair skies';
+          var hi = Math.round(d.daily.temperature_2m_max[0]);
+          var lo = Math.round(d.daily.temperature_2m_min[0]);
+          var pop = d.daily.precipitation_probability_max[0];
+          var wind = Math.round(d.daily.wind_speed_10m_max[0]);
+          var uv = Math.round(d.daily.uv_index_max[0]);
+
+          titleEl.textContent = now + '° and ' + desc + ' in Midland';
+          highEl.textContent = hi + '°';
+          rainEl.textContent = (pop == null ? '–' : pop + '%');
+          lowEl.textContent = lo + '°';
+          noteEl.textContent = 'Live forecast for Midland, TX · wind around ' + wind
+            + ' mph, UV index ' + uv + '. Weather changes are communicated through the event BAND app.';
+        }).catch(function () {
+          noteEl.textContent = 'Live forecast unavailable — showing the Oct. 10 snapshot. Weather changes are communicated through the event BAND app.';
+        });
+      })();
     })();
   </script>
 </body>
-</html>
+</htm
